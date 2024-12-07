@@ -1,0 +1,202 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                  Int                  @id @default(autoincrement())
+  email               String               @unique
+  name                String
+  phone               String
+  password            String
+  roles               Roles[]
+  shops               Shops[]
+  Parcel              Parcel[]
+  fieldPackageHandler FieldPackageHandler?
+  isActive            Boolean              @default(true)
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+}
+
+model Roles {
+  id                Int             @id @default(autoincrement())
+  user              User            @relation(fields: [userId], references: [id])
+  userId            Int
+  role              RoleDescription @relation(fields: [roleDescriptionId], references: [id])
+  roleDescriptionId Int
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+}
+
+model RoleDescription {
+  id          Int     @id @default(autoincrement())
+  name        String  @unique
+  description String?
+  roles       Roles[]
+}
+
+model FieldPackageHandler {
+  id        Int      @id @default(autoincrement())
+  address   String
+  area      Areas    @relation(fields: [areaId], references: [id])
+  areaId    Int
+  Parcel    Parcel[]
+  User      User     @relation(fields: [userId], references: [id])
+  userId    Int      @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Shops {
+  id             Int            @id @default(autoincrement())
+  name           String
+  email          String
+  address        String
+  productType    String
+  productSubType String
+  user           User           @relation(fields: [userId], references: [id])
+  userId         Int
+  pickUpPoints   PickUpPoints[]
+  Parcel         Parcel[]
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+}
+
+model PickUpPoints {
+  id        Int      @id @default(autoincrement())
+  name      String
+  address   String
+  area      Areas    @relation(fields: [areaId], references: [id])
+  areaId    Int
+  phone     String
+  isActive  Boolean  @default(false)
+  shops     Shops    @relation(fields: [shopsId], references: [id])
+  shopsId   Int
+  Parcel    Parcel[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ShopProductsParentCategories {
+  id          Int                           @id @default(autoincrement())
+  name        String                        @unique
+  description String?
+  childs      ShopProductsChildCategories[]
+}
+
+model ShopProductsChildCategories {
+  id          Int                          @id @default(autoincrement())
+  name        String                       @unique
+  description String?
+  parent      ShopProductsParentCategories @relation(fields: [parentId], references: [id])
+  parentId    Int
+}
+
+model Divisions {
+  id        Int         @id @default(autoincrement())
+  name      String      @unique
+  districts Districts[]
+}
+
+model Districts {
+  id         Int       @id @default(autoincrement())
+  name       String    @unique
+  division   Divisions @relation(fields: [divisionId], references: [id])
+  divisionId Int
+  areas      Areas[]
+}
+
+model Areas {
+  id                  Int                   @id @default(autoincrement())
+  name                String                @unique
+  district            Districts             @relation(fields: [districtId], references: [id])
+  districtId          Int
+  zones               Zones                 @relation(fields: [zonesId], references: [id])
+  zonesId             Int
+  Parcel              Parcel[]
+  PickUpPoints        PickUpPoints[]
+  FieldPackageHandler FieldPackageHandler[]
+}
+
+model Zones {
+  id              Int           @id @default(autoincrement())
+  name            String        @unique
+  areas           Areas[]
+  pricing         ParcelPricing @relation(fields: [parcelPricingId], references: [id])
+  parcelPricingId Int
+}
+
+model ParcelPricing {
+  id         Int     @id @default(autoincrement())
+  KG05_PRICE Float
+  KG1_PRICE  Float
+  KG2_PRICE  Float
+  KG3_PRICE  Float
+  KG4_PRICE  Float
+  KG5_PRICE  Float
+  zones      Zones[]
+}
+
+model ParcelProductCategories {
+  id     Int      @id @default(autoincrement())
+  name   String   @unique
+  Parcel Parcel[]
+}
+
+model Parcel {
+  id                        Int                     @id @default(autoincrement())
+  parcelNumber              String                  @unique @default(cuid())
+  customerName              String
+  customerPhone             String
+  customerAddress           String
+  customerParcelInvoiceId   String?
+  parcelProductType         String
+  parcelProductCategory     ParcelProductCategories @relation(fields: [parcelProductCategoriesId], references: [id])
+  parcelProductCategoriesId Int
+  parcelExtraInformation    String?
+  parcelStatus              ParcelStatus            @relation(fields: [parcelStatusId], references: [id])
+  parcelStatusId            Int
+  parcelWeight              Int
+  parcelCashCollection      Float
+  parcelPrice               Float
+  parcelCharge              Float
+  shop                      Shops                   @relation(fields: [shopsId], references: [id])
+  shopsId                   Int
+  parcelPickUp              PickUpPoints            @relation(fields: [parcelPickUpId], references: [id])
+  parcelPickUpId            Int
+  parcelDeliveryArea        Areas                   @relation(fields: [parcelDeliveryAreaId], references: [id])
+  parcelDeliveryAreaId      Int
+  parcelUser                User                    @relation(fields: [parcelUserId], references: [id])
+  parcelUserId              Int
+  createdAt                 DateTime                @default(now())
+  updatedAt                 DateTime                @updatedAt
+  FieldPackageHandler       FieldPackageHandler?    @relation(fields: [fieldPackageHandlerId], references: [id])
+  fieldPackageHandlerId     Int?
+  ParcelTimeline            ParcelTimeline[]
+}
+
+model ParcelStatus {
+  id             Int              @id @default(autoincrement())
+  name           String           @unique
+  description    String?
+  Parcel         Parcel[]
+  ParcelTimeline ParcelTimeline[]
+}
+
+model ParcelTimeline {
+  id             Int          @id @default(autoincrement())
+  Parcel         Parcel       @relation(fields: [parcelId], references: [id])
+  parcelId       Int
+  parcelStatus   ParcelStatus @relation(fields: [parcelStatusId], references: [id])
+  parcelStatusId Int
+  message        String
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
